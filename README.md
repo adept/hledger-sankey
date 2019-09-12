@@ -1,8 +1,8 @@
 # hledger-sankey
-Script + html files to plot income vs expense money flows from hledger ledger
+Script + html files to plot income vs expense money flows from hledger ledger as Sankey diagram
 
 This is a proof of concept that I hacked in a hurry to see if this could be done and to compare different JavaScript implementations
-of Sankey graph plotters.
+of Sankey plotters.
 
 # Use it
 Run `./sankey.sh /path/to/your.ledger`, which will generate `sankey.csv` in the `html` subdirectory.
