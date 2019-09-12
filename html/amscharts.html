@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+  <body>
+    <!-- Styles -->
+<style>
+#chartdiv {
+  width: 100%;
+  height: 1000px
+}
+
+</style>
+
+<!-- Resources -->
+<script src="https://www.amcharts.com/lib/4/core.js"></script>
+<script src="https://www.amcharts.com/lib/4/charts.js"></script>
+<script src="https://www.amcharts.com/lib/4/themes/animated.js"></script>
+
+<!-- Chart code -->
+<script>
+am4core.ready(function() {
+
+// Themes begin
+am4core.useTheme(am4themes_animated);
+// Themes end
+
+var chart = am4core.create("chartdiv", am4charts.SankeyDiagram);
+chart.hiddenState.properties.opacity = 0; // this creates initial fade-in
+
+chart.dataSource.url = "sankey.csv";
+chart.dataSource.parser = new am4core.CSVParser();
+chart.dataSource.parser.options.useColumnNames = true;
+chart.dataSource.parser.options.numberFields = ["value"];
+chart.nodes.template.nameLabel.label.width = 400;
+
+let hoverState = chart.links.template.states.create("hover");
+hoverState.properties.fillOpacity = 0.6;
+
+chart.dataFields.fromName = "source";
+chart.dataFields.toName = "target";
+chart.dataFields.value = "value";
+chart.sortBy = "value";
+
+//chart.nodeAlign = "bottom";
+
+chart.minNodeSize = 0.00001;
+
+
+// for right-most label to fit
+chart.paddingRight = 300;
+
+// make nodes draggable
+var nodeTemplate = chart.nodes.template;
+nodeTemplate.inert = true;
+nodeTemplate.readerTitle = "Drag me!";
+nodeTemplate.showSystemTooltip = true;
+nodeTemplate.width = 20;
+nodeTemplate.resizable = true;
+
+// make nodes draggable
+var nodeTemplate = chart.nodes.template;
+nodeTemplate.readerTitle = "Click to show/hide or drag to rearrange";
+nodeTemplate.showSystemTooltip = true;
+nodeTemplate.cursorOverStyle = am4core.MouseCursorStyle.pointer
+
+//nodeTemplate.nameLabel.label.text = "{name}";
+//nodeTemplate.valueLabel.label.text = "\n\n\n{totalIncoming}\n{totalOutgoing}";
+
+}); // end am4core.ready()
+</script>
+
+<!-- HTML -->
+<div id="chartdiv"></div>
+</body>
+</html>
