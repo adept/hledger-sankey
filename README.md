@@ -29,3 +29,12 @@ Script makes a bunch of assumptions:
 - `incomestatement` report will be generated in cost basis (with `--cost` argument)
 
 If these assumptions do not hold for you, edit the script.
+
+# Examples
+I personally hink that amscharts and highcharts yield the best results. Here is rendering of the sample file
+
+## Amscharts
+![Amscharts](img/amscharts-sankey-diagram.png)
+
+## Highcharts
+![Highcharts](img/highcharts-sankey-diagram.png)
