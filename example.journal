@@ -1,0 +1,60 @@
+; Declare top level accounts, setting their types and display order
+account assets      ; type:A, things I own
+account liabilities ; type:L, things I owe
+account equity      ; type:E, net worth, A - L
+account income      ; type:R, money sources
+account expenses    ; type:X, money sinks
+
+; Declare commodities/currencies and their decimal mark, digit grouping,
+; number of decimal places..
+commodity $1000.00
+commodity £1000.00
+
+2021-01-01 Opening Balances
+    assets:bank     £ 1200.00
+    assets:savings:old mutual   £500
+    equity:opening balance
+
+2021-01-04	04.01.2021; Rent;
+	expenses:rent
+	assets:bank			£-600.00
+
+2021-01-04	04.01.2021; Phone
+	expenses:phone
+	assets:bank			£-30.00
+
+2021-01-05	05.01.2021; Netflix Monthly Subscription
+	expenses:recreational:netflix
+	assets:bank			£-15.99
+
+2021-01-02	02/01/2021 16:30:13; Groceries;
+	expenses:groceries:food
+	assets:bank			£-19.69
+
+2021-01-29	29.01.2021; Salary
+	assets:bank			£ 1200.00
+	income:job
+
+2021-02-04	04.02.2021; Internet
+	expenses:home:internet
+	assets:bank			£-19.99
+
+2021-02-04	04.02.2021; Power
+	expenses:home:power
+	assets:bank			£-29.99
+
+2021-02-07   Withdrawing some of the savings
+	assets:savings:old mutual
+	assets:bank			£300
+
+2021-02-17   New savings account
+	assets:savings:new horizons     £200
+	assets:bank
+
+2021-01-07	07/01/2021; Pharmacy
+	expenses:groceries:pharmacy
+	assets:bank			£-19.90
+
+2021-02-08	08/02/2021; eBay
+	assets:bank			£ 10.00
+	income:ebay
