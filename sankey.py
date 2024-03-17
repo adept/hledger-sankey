@@ -16,6 +16,8 @@ LIABILITY_ACCOUNT_PAT = 'liabilities'
 INCOME_ACCOUNT_PAT    = 'income'
 EXPENSE_ACCOUNT_PAT   = 'expenses'
 
+HLEDGER_EXTRA_ARGS = ''
+
 # assets:cash -> assets
 # assets -> ''
 def parent(account_name):
@@ -32,6 +34,7 @@ def read_balance_report(filename,account_categories):
     # "--tree --no-elide" - ensure that parent accounts are listed even if they dont have balance changes, to make sure that our sankey flows dont have gaps
     # "-O csv" to produce CSV output
     command = 'hledger -f %s balance %s not:desc:opening --cost --value=then,£ --infer-value --no-total --tree --no-elide -O csv' % (filename,account_categories)
+    command += ' ' + HLEDGER_EXTRA_ARGS
 
     process_output = subprocess.run(command.split(' '), stdout=subprocess.PIPE, text=True).stdout
 
