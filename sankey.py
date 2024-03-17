@@ -5,6 +5,7 @@ from io import StringIO
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
+from pprint import pformat
 
 # Toplevel account categories that you have in your chart of accounts.
 # Used to filter out non-account lines out of the csv balance report
@@ -17,6 +18,17 @@ INCOME_ACCOUNT_PAT    = 'income'
 EXPENSE_ACCOUNT_PAT   = 'expenses'
 
 HLEDGER_EXTRA_ARGS = ''
+
+verbosity = 0
+
+# Pretty print a value if global verbosity level is high enough, and return it.
+# label will be prepended if non-empty.
+def dbg(level, label, val, pretty=True):
+    if verbosity >= level: print( (label + ":\n" if label else '') + (pformat(val) if pretty else val) )
+    return val
+def d1(label,val,pretty=True): return dbg(1,label,val,pretty)
+def d2(label,val,pretty=True): return dbg(2,label,val,pretty)
+def d3(label,val,pretty=True): return dbg(3,label,val,pretty)
 
 # assets:cash -> assets
 # assets -> ''
@@ -35,8 +47,10 @@ def read_balance_report(filename,account_categories):
     # "-O csv" to produce CSV output
     command = 'hledger -f %s balance %s not:desc:opening --cost --value=then,£ --infer-value --no-total --tree --no-elide -O csv' % (filename,account_categories)
     command += ' ' + HLEDGER_EXTRA_ARGS
+    d1('command',command,0)
 
     process_output = subprocess.run(command.split(' '), stdout=subprocess.PIPE, text=True).stdout
+    d2('hledger output lines',process_output)
 
     # Read the process output into a DataFrame, and clean it up, removing headers
     df = pd.read_csv(StringIO(process_output), header=None)
@@ -134,14 +148,20 @@ if __name__ == "__main__":
     
     # Sankey graph for all balances/flows
     all_balances_df = read_balance_report(filename, INCOME_ACCOUNT_PAT + ' ' + EXPENSE_ACCOUNT_PAT + ' ' + ASSET_ACCOUNT_PAT + ' ' + LIABILITY_ACCOUNT_PAT)
+    d1('all_balances_df',all_balances_df)
+
     all_balances = sankey_plot(to_sankey_df(all_balances_df))
+    d2('all_balances sankey plot',all_balances)
 
     # Sankey graph for just income/expenses
     income_expenses_df = read_balance_report(filename, INCOME_ACCOUNT_PAT + ' ' + EXPENSE_ACCOUNT_PAT)
+    d1('income_expenses_df',income_expenses_df)
     income_expenses = sankey_plot(to_sankey_df(income_expenses_df))
+    d2('all_balances sankey plot',income_expenses)
 
     # Expenses treemap plot for just expenses
     expenses = expenses_treemap_plot(income_expenses_df)
+    d2('expenses treemap plot',expenses)
 
     # Display all three graphs in a column
     fig = make_subplots(rows=3, cols=1, specs = [[{"type": "treemap"}],[{"type": "sankey"}],[{"type": "sankey"}]] )
