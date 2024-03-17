@@ -8,7 +8,13 @@ import plotly.express as px
 
 # Toplevel account categories that you have in your chart of accounts.
 # Used to filter out non-account lines out of the csv balance report
-TOPLEVEL_ACCOUNT_CATEGORIES=['income','expenses','assets','liabilities','virtual']
+TOPLEVEL_ACCOUNT_CATEGORIES=['income','revenues','expenses','assets','liabilities','virtual']
+
+# Account name substrings for recognising account types
+ASSET_ACCOUNT_PAT     = 'assets'
+LIABILITY_ACCOUNT_PAT = 'liabilities'
+INCOME_ACCOUNT_PAT    = 'income'
+EXPENSE_ACCOUNT_PAT   = 'expenses'
 
 # assets:cash -> assets
 # assets -> ''
@@ -68,7 +74,7 @@ def to_sankey_df(df):
                 raise Exception(f'for account {account_name}, parent account {parent_acc} not found - have you forgotten --no-elide?')
 
         # income and virtual flow 'up'
-        if 'income' in account_name or 'virtual' in account_name:
+        if INCOME_ACCOUNT_PAT in account_name or 'virtual' in account_name:
             # Negative income is just income, positive income is a reduction, pay-back or something similar
             # For sankey, all flow values should be positive
             if balance < 0:
@@ -113,7 +119,7 @@ def sankey_plot(sankey_df):
     return fig
 
 def expenses_treemap_plot(balances_df):
-    balances_df = balances_df[balances_df[0].str.contains('expenses')].copy()  # Make a copy to avoid modifying the original DataFrame
+    balances_df = balances_df[balances_df[0].str.contains(EXPENSE_ACCOUNT_PAT)].copy()  # Make a copy to avoid modifying the original DataFrame
     balances_df.loc[:, 'name'] = balances_df[0]
     balances_df.loc[:, 'value'] = balances_df[1].astype(int)
     balances_df.loc[:, 'parent'] = balances_df['name'].apply(parent)
@@ -124,11 +130,11 @@ if __name__ == "__main__":
     filename=sys.argv[1]
     
     # Sankey graph for all balances/flows
-    all_balances_df = read_balance_report(filename,'income expenses assets liabilities')
+    all_balances_df = read_balance_report(filename, INCOME_ACCOUNT_PAT + ' ' + EXPENSE_ACCOUNT_PAT + ' ' + ASSET_ACCOUNT_PAT + ' ' + LIABILITY_ACCOUNT_PAT)
     all_balances = sankey_plot(to_sankey_df(all_balances_df))
 
     # Sankey graph for just income/expenses
-    income_expenses_df = read_balance_report(filename,'income expenses')
+    income_expenses_df = read_balance_report(filename, INCOME_ACCOUNT_PAT + ' ' + EXPENSE_ACCOUNT_PAT)
     income_expenses = sankey_plot(to_sankey_df(income_expenses_df))
 
     # Expenses treemap plot for just expenses
