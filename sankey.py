@@ -9,17 +9,18 @@ from pprint import pformat
 
 # Toplevel account categories that you have in your chart of accounts.
 # Used to filter out non-account lines out of the csv balance report
-TOPLEVEL_ACCOUNT_CATEGORIES=['income','revenues','expenses','assets','liabilities','virtual']
+#TOPLEVEL_ACCOUNT_CATEGORIES=['income','revenues','expenses','assets','liabilities','virtual']
+TOPLEVEL_ACCOUNT_CATEGORIES=['Income','Expenses','Assets','Liabilities','Equity']
 
 # Account name substrings for recognising account types
-ASSET_ACCOUNT_PAT     = 'assets'
-LIABILITY_ACCOUNT_PAT = 'liabilities'
-INCOME_ACCOUNT_PAT    = 'income'
-EXPENSE_ACCOUNT_PAT   = 'expenses'
+ASSET_ACCOUNT_PAT     = 'Assets'
+LIABILITY_ACCOUNT_PAT = 'Liabilities'
+INCOME_ACCOUNT_PAT    = 'Income'
+EXPENSE_ACCOUNT_PAT   = 'Expenses'
 
 HLEDGER_EXTRA_ARGS = ''
 
-verbosity = 0
+verbosity = 2
 
 # Pretty print a value if global verbosity level is high enough, and return it.
 # label will be prepended if non-empty.
@@ -45,7 +46,10 @@ def read_balance_report(filename,account_categories):
     # "--no-total" - ensure that we dont have a total row
     # "--tree --no-elide" - ensure that parent accounts are listed even if they dont have balance changes, to make sure that our sankey flows dont have gaps
     # "-O csv" to produce CSV output
-    command = 'hledger -f %s balance %s not:desc:opening --cost --value=then,£ --infer-value --no-total --tree --no-elide -O csv' % (filename,account_categories)
+
+    command = 'hledger -f %s balance %s not:desc:opening --cost --value=then,EUR --infer-value --no-total --tree --no-elide -O csv' % (filename,account_categories)
+
+#    command = 'hledger -f %s balance %s not:desc:opening --cost --value=then,EUR --infer-equity ' % (filename,account_categories)
     command += ' ' + HLEDGER_EXTRA_ARGS
     d1('command',command,0)
 
@@ -56,12 +60,12 @@ def read_balance_report(filename,account_categories):
     df = pd.read_csv(StringIO(process_output), header=None)
     df = df[df[0].str.contains('|'.join(TOPLEVEL_ACCOUNT_CATEGORIES))]
 
-    # Remove "£" sign from balance values, and convert them to numeric
-    df[1] = df[1].str.replace('£', '')
+    # Remove "EUR" sign from balance values, and convert them to numeric
+    df[1] = df[1].str.replace(' EUR', '')
     df[1] = pd.to_numeric(df[1], errors='coerce')
 
     return df
-    
+
 # Convert hledger balance report dataframe into a (source, target, cash flow value) table, that could be used to produce the sankey graph.
 # We make the following assumptions:
 # 1. Balance report will have top-level categories "assents","income","expenses","liabilities" with the usual semantics.
@@ -72,13 +76,14 @@ def read_balance_report(filename,account_categories):
 def to_sankey_df(df):
     # Create a DataFrame to store the sankey data
     sankey_df = pd.DataFrame(columns=['source', 'target', 'value'])
-    
+
     # A set of all accounts mentioned in the report, to check that parent accounts have known balance
     accounts=set(df[0].values)
 
     # Convert report to the sankey dataframe
     for index, row in df.iterrows():
         account_name = row[0]
+        account_shortname = account_name.split(':')[-1]
         balance = row[1]
 
         # top-level accounts need to be connected to the special "pot" intermediate bucket
@@ -104,7 +109,7 @@ def to_sankey_df(df):
                 source, target = parent_acc,   account_name
             else:
                 source, target = account_name, parent_acc
-        
+
         sankey_df.loc[len(sankey_df)] = {'source': source, 'target': target, 'value': abs(balance)}
 
     # Output the sankey_df to a CSV file, for debugging
@@ -141,11 +146,11 @@ def expenses_treemap_plot(balances_df):
     balances_df.loc[:, 'value'] = balances_df[1].astype(int)
     balances_df.loc[:, 'parent'] = balances_df['name'].apply(parent)
     return px.treemap(data_frame=balances_df, names='name', parents='parent', values='value', branchvalues='total')
-   
+
 
 if __name__ == "__main__":
     filename=sys.argv[1]
-    
+
     # Sankey graph for all balances/flows
     all_balances_df = read_balance_report(filename, INCOME_ACCOUNT_PAT + ' ' + EXPENSE_ACCOUNT_PAT + ' ' + ASSET_ACCOUNT_PAT + ' ' + LIABILITY_ACCOUNT_PAT)
     d1('all_balances_df',all_balances_df)
@@ -173,5 +178,5 @@ if __name__ == "__main__":
     # ... followed by flows between all the balances
     fig.add_trace(all_balances.data[0], row=3, col=1)
     fig.update_layout(title_text="Cash Flows", height=2700) # 3 plots x 900 px
-    
-    fig.show()            
+
+    fig.show()
