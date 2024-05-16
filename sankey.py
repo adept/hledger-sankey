@@ -36,6 +36,12 @@ def d3(label,val,pretty=True): return dbg(3,label,val,pretty)
 def parent(account_name):
     return ':'.join(account_name.split(':')[:-1])
 
+def shorten(account_name):
+    if account_name.split(':')[0] != account_name.split(':')[-1]:
+        return ':'.join([account_name.split(':')[0], account_name.split(':')[-1]])
+    else:
+        return account_name
+
 def read_balance_report(filename,account_categories):
     # You might want to try just "income expenses" as account categories, or less depth via "--depth 2"
     # Explanation for the choice of arguments:
@@ -84,6 +90,7 @@ def to_sankey_df(df):
     for index, row in df.iterrows():
         account_name = row[0]
         account_shortname = account_name.split(':')[-1]
+        acc_name = shorten(account_name)
         balance = row[1]
 
         # top-level accounts need to be connected to the special "pot" intermediate bucket
@@ -91,24 +98,25 @@ def to_sankey_df(df):
         if account_name in TOPLEVEL_ACCOUNT_CATEGORIES:
             parent_acc = 'pot'
         else:
-            parent_acc = parent(account_name)
-            if parent_acc not in accounts:
+            parent_acct = parent(account_name)
+            if parent_acct not in accounts:
                 raise Exception(f'for account {account_name}, parent account {parent_acc} not found - have you forgotten --no-elide?')
+            parent_acc = shorten(parent_acct)
 
         # income and virtual flow 'up'
         if INCOME_ACCOUNT_PAT in account_name or 'virtual' in account_name:
             # Negative income is just income, positive income is a reduction, pay-back or something similar
             # For sankey, all flow values should be positive
             if balance < 0:
-                source, target = account_name, parent_acc
+                source, target = acc_name, parent_acc
             else:
-                source, target = parent_acc,   account_name
+                source, target = parent_acc,   acc_name
         else:
             # positive expenses/assets are normal expenses or investements or purchase of assets, negative values are cashbacks, or cashing in of investments
             if balance >= 0:
-                source, target = parent_acc,   account_name
+                source, target = parent_acc,   acc_name
             else:
-                source, target = account_name, parent_acc
+                source, target = acc_name, parent_acc
 
         sankey_df.loc[len(sankey_df)] = {'source': source, 'target': target, 'value': abs(balance)}
 
