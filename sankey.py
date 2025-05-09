@@ -65,13 +65,13 @@ def read_balance_report(filename,account_categories):
         balance = row[1]
 
         stripped_account = unstripped_account.lstrip('\xa0')
-        depth = (len(unstripped_account) - len(stripped_account)) / 2
+        depth = (len(unstripped_account) - len(stripped_account)) // 2
 
         s = len(stack)
         if depth > s:
             stack.append(prev_account)
         elif depth < s:
-            stack.pop()
+            del stack[depth:]
 
         full_account = ":".join(stack + [stripped_account])
         prev_account = stripped_account
