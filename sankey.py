@@ -1,3 +1,5 @@
+import csv
+import io
 import sys
 import pandas as pd
 import subprocess
@@ -52,8 +54,36 @@ def read_balance_report(filename,account_categories):
     process_output = subprocess.run(command.split(' '), stdout=subprocess.PIPE, text=True).stdout
     d2('hledger output lines',process_output)
 
+    csv_file = io.StringIO(process_output)
+    csv_reader = csv.reader(csv_file)
+    orig_rows = list(csv_reader)
+    header = orig_rows[0]
+    rows = [header]
+    stack = []
+    for row in orig_rows[1:]:
+        unstripped_account = row[0]
+        balance = row[1]
+
+        stripped_account = unstripped_account.lstrip('\xa0')
+        depth = (len(unstripped_account) - len(stripped_account)) / 2
+
+        s = len(stack)
+        if depth > s:
+            stack.append(prev_account)
+        elif depth < s:
+            stack.pop()
+
+        full_account = ":".join(stack + [stripped_account])
+        prev_account = stripped_account
+        rows.append([full_account, balance])
+
+    csv_out = io.StringIO()
+    csv_writer = csv.writer(csv_out)
+    csv_writer.writerows(rows)
+    csv_out.seek(0)
+
     # Read the process output into a DataFrame, and clean it up, removing headers
-    df = pd.read_csv(StringIO(process_output), header=None)
+    df = pd.read_csv(csv_out, header=None)
     df = df[df[0].str.contains('|'.join(TOPLEVEL_ACCOUNT_CATEGORIES))]
 
     # Remove "£" sign from balance values, and convert them to numeric
@@ -61,7 +91,7 @@ def read_balance_report(filename,account_categories):
     df[1] = pd.to_numeric(df[1], errors='coerce')
 
     return df
-    
+
 # Convert hledger balance report dataframe into a (source, target, cash flow value) table, that could be used to produce the sankey graph.
 # We make the following assumptions:
 # 1. Balance report will have top-level categories "assents","income","expenses","liabilities" with the usual semantics.
@@ -72,7 +102,7 @@ def read_balance_report(filename,account_categories):
 def to_sankey_df(df):
     # Create a DataFrame to store the sankey data
     sankey_df = pd.DataFrame(columns=['source', 'target', 'value'])
-    
+
     # A set of all accounts mentioned in the report, to check that parent accounts have known balance
     accounts=set(df[0].values)
 
@@ -104,7 +134,7 @@ def to_sankey_df(df):
                 source, target = parent_acc,   account_name
             else:
                 source, target = account_name, parent_acc
-        
+
         sankey_df.loc[len(sankey_df)] = {'source': source, 'target': target, 'value': abs(balance)}
 
     # Output the sankey_df to a CSV file, for debugging
@@ -141,11 +171,11 @@ def expenses_treemap_plot(balances_df):
     balances_df.loc[:, 'value'] = balances_df[1].astype(int)
     balances_df.loc[:, 'parent'] = balances_df['name'].apply(parent)
     return px.treemap(data_frame=balances_df, names='name', parents='parent', values='value', branchvalues='total')
-   
+
 
 if __name__ == "__main__":
     filename=sys.argv[1]
-    
+
     # Sankey graph for all balances/flows
     all_balances_df = read_balance_report(filename, INCOME_ACCOUNT_PAT + ' ' + EXPENSE_ACCOUNT_PAT + ' ' + ASSET_ACCOUNT_PAT + ' ' + LIABILITY_ACCOUNT_PAT)
     d1('all_balances_df',all_balances_df)
@@ -173,5 +203,5 @@ if __name__ == "__main__":
     # ... followed by flows between all the balances
     fig.add_trace(all_balances.data[0], row=3, col=1)
     fig.update_layout(title_text="Cash Flows", height=2700) # 3 plots x 900 px
-    
-    fig.show()            
+
+    fig.show()
