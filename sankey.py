@@ -13,17 +13,17 @@ TOPLEVEL_ACCOUNT_CATEGORIES=['income','expenses','assets','liabilities','virtual
 def parent(account_name):
     return ':'.join(account_name.split(':')[:-1])
 
-def read_balance_report(filename,account_categories):
+def read_balance_report(filename, account_categories, commodity):
     # You might want to try just "income expenses" as account categories, or less depth via "--depth 2"
     # Explanation for the choice of arguments:
     # "balance income expenses assets liabilities" are account categories
     # "not:desc:opening" excludes year-open transaction which carries over values of assets from the previous year, as we are only interested in asset increases, not
     #     absolute value
-    # "--cost --value=then,£ --infer-value" - convert everything to a single commodity, £ in my case
+    # "--cost --value=then,<commodity> --infer-value" - convert everything to a single commodity
     # "--no-total" - ensure that we dont have a total row
     # "--tree --no-elide" - ensure that parent accounts are listed even if they dont have balance changes, to make sure that our sankey flows dont have gaps
     # "-O json" to produce JSON output
-    command = 'hledger -f %s balance %s not:desc:opening --cost --value=then,£ --infer-value --no-total --tree --no-elide -O json' % (filename,account_categories)
+    command = 'hledger -f %s balance %s not:desc:opening --cost --value=then,%s --infer-value --no-total --tree --no-elide -O json' % (filename, account_categories, commodity)
 
     process_output = subprocess.run(command.split(' '), stdout=subprocess.PIPE, text=True).stdout
 
@@ -142,13 +142,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate Sankey diagrams from hledger balance reports')
     parser.add_argument('filename', help='Path to the hledger journal file')
     parser.add_argument('--debug', action='store_true', help='Print debug output (parsed data)')
+    parser.add_argument('--commodity', default='£', help='Commodity to convert all values to (default: £)')
     args = parser.parse_args()
 
     filename = args.filename
     debug = args.debug
+    commodity = args.commodity
 
     # Sankey graph for all balances/flows
-    all_balances = read_balance_report(filename,'income expenses assets liabilities')
+    all_balances = read_balance_report(filename, 'income expenses assets liabilities', commodity)
     if debug:
         print("=" * 60)
         print("All balances (income expenses assets liabilities):")
@@ -169,7 +171,7 @@ if __name__ == "__main__":
     all_balances_fig = sankey_plot(all_balances_sankey)
 
     # Sankey graph for just income/expenses
-    income_expenses = read_balance_report(filename,'income expenses')
+    income_expenses = read_balance_report(filename, 'income expenses', commodity)
     if debug:
         print("=" * 60)
         print("Income/Expenses:")

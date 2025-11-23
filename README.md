@@ -1,5 +1,5 @@
 # hledger-sankey
-A python3 script (that uses pandas and plotly) to plot three graphs:
+A python3 script (that uses plotly, tested with plotly 6.5.0) to plot three graphs:
 
 - treemap graph of all expenses
 
@@ -11,7 +11,7 @@ A python3 script (that uses pandas and plotly) to plot three graphs:
 Run `python3 sankey.py example.journal`, and this should open the page with interactive graphs in your browser.
 
 # Try it
-Repository contains `sankey.csv` generated out of slighly edited `Cody.journal` from hledger examples.
+Repository contains `example.journal` generated out of slighly edited `Cody.journal` from hledger examples.
 
 # Assumptions
 This is a proof of concept, and it is a bit rough round the edges.
@@ -25,7 +25,7 @@ Script makes a bunch of assumptions:
 - income, expenses, assets and liabilities categories in
   your chart of accounts are named exactly this
 
-- your balances could be obtained in '£' via `--cost --value=then,£` flags for `hledger balance`.
+- your balances could be obtained in '£' via `--value=then,£` flags for `hledger balance`. You can use `--commodity` command line switch to choose a different commodity.
 
 If these assumptions do not hold for you, edit the script.
 
