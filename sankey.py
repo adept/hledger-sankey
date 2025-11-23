@@ -3,10 +3,29 @@ import argparse
 import subprocess
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from pprint import pformat
 
 # Toplevel account categories that you have in your chart of accounts.
 # Used to filter out non-account entries from the JSON balance report
-TOPLEVEL_ACCOUNT_CATEGORIES=['income','expenses','assets','liabilities','virtual']
+TOPLEVEL_ACCOUNT_CATEGORIES=['income','revenues','expenses','assets','liabilities','virtual']
+
+# Account name substrings for recognising account types
+ASSET_ACCOUNT_PAT     = 'assets'
+LIABILITY_ACCOUNT_PAT = 'liabilities'
+INCOME_ACCOUNT_PAT    = 'income'
+EXPENSE_ACCOUNT_PAT   = 'expenses'
+
+HLEDGER_EXTRA_ARGS = ''
+
+verbosity = 0
+
+# Pretty print a value if global verbosity level is high enough, and return it.
+# label will be prepended if non-empty.
+def dbg(level, label, val, pretty=True):
+    if verbosity >= level: print( (label + ":\n" if label else '') + (pformat(val) if pretty else val) )
+    return val
+def d1(label,val,pretty=True): return dbg(1,label,val,pretty)
+
 
 # assets:cash -> assets
 # assets -> ''
@@ -24,8 +43,11 @@ def read_balance_report(filename, account_categories, commodity):
     # "--tree --no-elide" - ensure that parent accounts are listed even if they dont have balance changes, to make sure that our sankey flows dont have gaps
     # "-O json" to produce JSON output
     command = 'hledger -f %s balance %s not:desc:opening --cost --value=then,%s --infer-value --no-total --tree --no-elide -O json' % (filename, account_categories, commodity)
+    command += ' ' + HLEDGER_EXTRA_ARGS
+    d1('command',command,0)
 
     process_output = subprocess.run(command.split(' '), stdout=subprocess.PIPE, text=True).stdout
+    d1('hledger output lines',process_output)
 
     # Parse JSON output
     data = json.loads(process_output)
@@ -75,7 +97,7 @@ def to_sankey_data(balances):
                 raise Exception(f'for account {account_name}, parent account {parent_acc} not found - have you forgotten --no-elide?')
 
         # income and virtual flow 'up'
-        if 'income' in account_name or 'virtual' in account_name:
+        if INCOME_ACCOUNT_PAT in account_name or 'virtual' in account_name:
             # Negative income is just income, positive income is a reduction, pay-back or something similar
             # For sankey, all flow values should be positive
             if balance < 0:
@@ -122,7 +144,7 @@ def sankey_plot(sankey_data):
 
 def expenses_treemap_plot(balances):
     # Filter to only expenses
-    expenses = [(name, value) for name, value in balances if 'expenses' in name]
+    expenses = [(name, value) for name, value in balances if EXPENSE_ACCOUNT_PAT in name]
 
     labels = [name for name, _ in expenses]
     values = [value for _, value in expenses]
@@ -150,10 +172,11 @@ if __name__ == "__main__":
     commodity = args.commodity
 
     # Sankey graph for all balances/flows
-    all_balances = read_balance_report(filename, 'income expenses assets liabilities', commodity)
+    all_pat = INCOME_ACCOUNT_PAT + ' ' + EXPENSE_ACCOUNT_PAT + ' ' + ASSET_ACCOUNT_PAT + ' ' + LIABILITY_ACCOUNT_PAT
+    all_balances = read_balance_report(filename, all_pat, commodity)
     if debug:
         print("=" * 60)
-        print("All balances (income expenses assets liabilities):")
+        print(f"All balances ({all_pat}):")
         print("=" * 60)
         for account, balance in all_balances:
             print(f"  {account:40} {balance:>10.2f}")
@@ -171,10 +194,11 @@ if __name__ == "__main__":
     all_balances_fig = sankey_plot(all_balances_sankey)
 
     # Sankey graph for just income/expenses
-    income_expenses = read_balance_report(filename, 'income expenses', commodity)
+    income_expenses_pat = INCOME_ACCOUNT_PAT + ' ' + EXPENSE_ACCOUNT_PAT
+    income_expenses = read_balance_report(filename, income_expenses_pat, commodity)
     if debug:
         print("=" * 60)
-        print("Income/Expenses:")
+        print(f"{income_expenses_pat}:")
         print("=" * 60)
         for account, balance in income_expenses:
             print(f"  {account:40} {balance:>10.2f}")
@@ -183,7 +207,7 @@ if __name__ == "__main__":
     income_expenses_sankey = to_sankey_data(income_expenses)
     if debug:
         print("=" * 60)
-        print("Income/Expenses Sankey data:")
+        print(f"{income_expenses_pat} Sankey data:")
         print("=" * 60)
         for source, target, value in income_expenses_sankey:
             print(f"  {source:30} -> {target:30} {value:>10.2f}")
