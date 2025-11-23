@@ -1,4 +1,5 @@
 import sys
+import json
 import pandas as pd
 import subprocess
 from io import StringIO
@@ -24,19 +25,32 @@ def read_balance_report(filename,account_categories):
     # "--cost --value=then,£ --infer-value" - convert everything to a single commodity, £ in my case
     # "--no-total" - ensure that we dont have a total row
     # "--tree --no-elide" - ensure that parent accounts are listed even if they dont have balance changes, to make sure that our sankey flows dont have gaps
-    # "-O csv" to produce CSV output
-    command = 'hledger -f %s balance %s not:desc:opening --cost --value=then,£ --infer-value --no-total --tree --no-elide -O csv' % (filename,account_categories)
+    # "-O json" to produce JSON output
+    command = 'hledger -f %s balance %s not:desc:opening --cost --value=then,£ --infer-value --no-total --tree --no-elide -O json' % (filename,account_categories)
 
     process_output = subprocess.run(command.split(' '), stdout=subprocess.PIPE, text=True).stdout
 
-    # Read the process output into a DataFrame, and clean it up, removing headers
-    df = pd.read_csv(StringIO(process_output), header=None)
-    df = df[df[0].str.contains('|'.join(TOPLEVEL_ACCOUNT_CATEGORIES))]
+    # Parse JSON output
+    data = json.loads(process_output)
 
-    # Remove "£" sign from balance values, and convert them to numeric
-    df[1] = df[1].str.replace('£', '')
-    df[1] = pd.to_numeric(df[1], errors='coerce')
+    # First element of the JSON array contains the account entries
+    accounts = data[0]
 
+    # Build list of rows for the DataFrame
+    rows = []
+    for entry in accounts:
+        account_name = entry[0]
+        # Filter to only include accounts that match our top-level categories
+        if any(cat in account_name for cat in TOPLEVEL_ACCOUNT_CATEGORIES):
+            # Get the balance from the amounts array (entry[3])
+            amounts = entry[3]
+            if amounts:
+                balance = amounts[0]["aquantity"]["floatingPoint"]
+            else:
+                balance = 0
+            rows.append([account_name, balance])
+
+    df = pd.DataFrame(rows, columns=[0, 1])
     return df
 
 # Convert hledger balance report dataframe into a (source, target, cash flow value) table, that could be used to produce the sankey graph.
