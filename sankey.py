@@ -5,15 +5,15 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pprint import pformat
 
-# Toplevel account categories that you have in your chart of accounts.
-# Used to filter out non-account entries from the JSON balance report
-TOPLEVEL_ACCOUNT_CATEGORIES=['income','revenues','expenses','assets','liabilities','virtual']
-
 # Account name substrings for recognising account types
 ASSET_ACCOUNT_PAT     = 'assets'
 LIABILITY_ACCOUNT_PAT = 'liabilities'
 INCOME_ACCOUNT_PAT    = 'income'
 EXPENSE_ACCOUNT_PAT   = 'expenses'
+
+# Toplevel account categories that you have in your chart of accounts.
+# Used to filter out non-account entries from the JSON balance report
+TOPLEVEL_ACCOUNT_CATEGORIES=[INCOME_ACCOUNT_PAT,EXPENSE_ACCOUNT_PAT,ASSET_ACCOUNT_PAT,LIABILITY_ACCOUNT_PAT,'revenues','virtual']
 
 HLEDGER_EXTRA_ARGS = ''
 
