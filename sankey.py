@@ -38,7 +38,7 @@ def read_balance_report(filename,account_categories):
     df[1] = pd.to_numeric(df[1], errors='coerce')
 
     return df
-    
+
 # Convert hledger balance report dataframe into a (source, target, cash flow value) table, that could be used to produce the sankey graph.
 # We make the following assumptions:
 # 1. Balance report will have top-level categories "assents","income","expenses","liabilities" with the usual semantics.
@@ -49,7 +49,7 @@ def read_balance_report(filename,account_categories):
 def to_sankey_df(df):
     # Create a DataFrame to store the sankey data
     sankey_df = pd.DataFrame(columns=['source', 'target', 'value'])
-    
+
     # A set of all accounts mentioned in the report, to check that parent accounts have known balance
     accounts=set(df[0].values)
 
@@ -81,7 +81,7 @@ def to_sankey_df(df):
                 source, target = parent_acc,   account_name
             else:
                 source, target = account_name, parent_acc
-        
+
         sankey_df.loc[len(sankey_df)] = {'source': source, 'target': target, 'value': abs(balance)}
 
     # Output the sankey_df to a CSV file, for debugging
@@ -118,11 +118,11 @@ def expenses_treemap_plot(balances_df):
     balances_df.loc[:, 'value'] = balances_df[1].astype(int)
     balances_df.loc[:, 'parent'] = balances_df['name'].apply(parent)
     return px.treemap(data_frame=balances_df, names='name', parents='parent', values='value', branchvalues='total')
-   
+
 
 if __name__ == "__main__":
     filename=sys.argv[1]
-    
+
     # Sankey graph for all balances/flows
     all_balances_df = read_balance_report(filename,'income expenses assets liabilities')
     all_balances = sankey_plot(to_sankey_df(all_balances_df))
@@ -144,5 +144,5 @@ if __name__ == "__main__":
     # ... followed by flows between all the balances
     fig.add_trace(all_balances.data[0], row=3, col=1)
     fig.update_layout(title_text="Cash Flows", height=2700) # 3 plots x 900 px
-    
-    fig.show()            
+
+    fig.show()
