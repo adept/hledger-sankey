@@ -1,5 +1,6 @@
 import sys
 import json
+import argparse
 import pandas as pd
 import subprocess
 from io import StringIO
@@ -98,8 +99,6 @@ def to_sankey_df(df):
 
         sankey_df.loc[len(sankey_df)] = {'source': source, 'target': target, 'value': abs(balance)}
 
-    # Output the sankey_df to a CSV file, for debugging
-    sankey_df.to_csv('sankey.csv', index=False)
     return sankey_df
 
 def sankey_plot(sankey_df):
@@ -135,15 +134,51 @@ def expenses_treemap_plot(balances_df):
 
 
 if __name__ == "__main__":
-    filename=sys.argv[1]
+    parser = argparse.ArgumentParser(description='Generate Sankey diagrams from hledger balance reports')
+    parser.add_argument('filename', help='Path to the hledger journal file')
+    parser.add_argument('--debug', action='store_true', help='Print debug output (parsed DataFrames)')
+    args = parser.parse_args()
+
+    filename = args.filename
+    debug = args.debug
 
     # Sankey graph for all balances/flows
     all_balances_df = read_balance_report(filename,'income expenses assets liabilities')
-    all_balances = sankey_plot(to_sankey_df(all_balances_df))
+    if debug:
+        print("=" * 60)
+        print("All balances DataFrame (income expenses assets liabilities):")
+        print("=" * 60)
+        print(all_balances_df.to_string())
+        print()
+
+    all_balances_sankey_df = to_sankey_df(all_balances_df)
+    if debug:
+        print("=" * 60)
+        print("All balances Sankey DataFrame:")
+        print("=" * 60)
+        print(all_balances_sankey_df.to_string())
+        print()
+
+    all_balances = sankey_plot(all_balances_sankey_df)
 
     # Sankey graph for just income/expenses
     income_expenses_df = read_balance_report(filename,'income expenses')
-    income_expenses = sankey_plot(to_sankey_df(income_expenses_df))
+    if debug:
+        print("=" * 60)
+        print("Income/Expenses DataFrame:")
+        print("=" * 60)
+        print(income_expenses_df.to_string())
+        print()
+
+    income_expenses_sankey_df = to_sankey_df(income_expenses_df)
+    if debug:
+        print("=" * 60)
+        print("Income/Expenses Sankey DataFrame:")
+        print("=" * 60)
+        print(income_expenses_sankey_df.to_string())
+        print()
+
+    income_expenses = sankey_plot(income_expenses_sankey_df)
 
     # Expenses treemap plot for just expenses
     expenses = expenses_treemap_plot(income_expenses_df)
