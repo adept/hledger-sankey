@@ -128,7 +128,7 @@ def sankey_plot(sankey_df):
 def expenses_treemap_plot(balances_df):
     balances_df = balances_df[balances_df[0].str.contains('expenses')].copy()  # Make a copy to avoid modifying the original DataFrame
     balances_df.loc[:, 'name'] = balances_df[0]
-    balances_df.loc[:, 'value'] = balances_df[1].astype(int)
+    balances_df.loc[:, 'value'] = balances_df[1]
     balances_df.loc[:, 'parent'] = balances_df['name'].apply(parent)
     return px.treemap(data_frame=balances_df, names='name', parents='parent', values='value', branchvalues='total')
 
